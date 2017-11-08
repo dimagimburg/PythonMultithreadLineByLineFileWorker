@@ -4,6 +4,7 @@ import random
 import string
 import fileinput
 import shutil
+import ast
 from threading import Thread
 from Queue import Queue
 
@@ -49,7 +50,12 @@ class LineByLineJob:
 
     def _create_and_run_threads(self):
         for i in range(self.number_of_threads):
-            t = LineByLineJobThread(self.input_queue, self.single_line_worker, self.job_directory_full_path, debug=self.debug)
+
+            if self.is_csv:
+                t = CSVLineByLineJobThread(self.input_queue, self.single_line_worker, self.job_directory_full_path, debug=self.debug)
+            else:
+                t = LineByLineJobThread(self.input_queue, self.single_line_worker, self.job_directory_full_path, debug=self.debug)
+
             t.daemon = True
             t.start()
 
@@ -66,7 +72,7 @@ class LineByLineJob:
 
                 if self.debug:
                     print(
-                    "[DEUBG ::Line added to queue] - [line_number={line_number}] [line={line_text}]".format(**{
+                    "[DEUBG :: Line added to queue] - [line_number={line_number}] [line={line_text}]".format(**{
                         'line_number': index,
                         'line_text': str(line)
                     }))
@@ -96,7 +102,11 @@ class LineByLineJob:
 
 
 class LineByLineJobThread(Thread):
-
+    """
+        This class is a thread the invokes the process on input lines located on the input queue
+        The line worker is invoked with one string pulled from the input queue and the processed result from the worker should be string
+    """
+    # TODO: check that the input is of string instance
     def __init__(self, input_queue, line_worker, path, debug=False):
         Thread.__init__(self)
         self.line_worker = line_worker
@@ -110,7 +120,7 @@ class LineByLineJobThread(Thread):
             # time.sleep(1)
             input_line = self.input_queue.get()
             proccessed = self.line_worker(input_line)
-            if proccessed:
+            if bool(proccessed):
                 self.append_to_thread_file(proccessed)
             self.input_queue.task_done()
         return
@@ -122,8 +132,17 @@ class LineByLineJobThread(Thread):
 
 
 class CSVLineByLineJobThread(LineByLineJobThread):
-    def __init__(self, input_queue, line_worker, path, debug=False):
-        super(CSVLineByLineJobThread, self).__init__(input_queue, line_worker, path, debug)
+    """
+        This class is a thread the invokes the process on input lines located on the input queue
+        The line worker is invoked with one array of strings pulled from the input queue and the processed result from the worker should be array of strings
+    """
 
-    def run(self):
-        return
+    # TODO: check that the input is of array of string instance
+    def __init__(self, input_queue, line_worker, path, debug=False):
+        LineByLineJobThread.__init__(self, input_queue, line_worker, path, debug)
+
+    def append_to_thread_file(self, preccessed_input):
+        thread_id = self.ident
+        with open(os.path.join(self.path, str(thread_id) + ".csv"), "ab") as myfile:
+            writer = csv.writer(myfile)
+            writer.writerow(preccessed_input)

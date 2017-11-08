@@ -1,5 +1,5 @@
-row_0,Sari
-row_1,overshepherd
+row_0,Sari,"ok, fine, yes"
+row_1,overshepherd,"no,never"
 row_2,coulterneb
 row_3,crystallogenetic
 row_4,unvantaged
